@@ -47,8 +47,7 @@ classifiers = [
 
 
 long_description = (
-    read_content("README.md") +
-    read_content(os.path.join("docs/source", "CHANGELOG.rst")))
+    read_content("README.md") )
 
 requires = ['setuptools', 'typeguard==2.5.0', 'pyspark==2.4.3', 'findspark']
 
@@ -62,7 +61,7 @@ setup(name='pyseqtender',
       version=os.getenv('VERSION', '0.1.0'),
       description='Distributed NGS pipelines made easy',
       long_description=long_description,
-      long_description_content_type='text/x-rst',
+      long_description_content_type='text/markdown',
       author='biodatageeks',
       author_email='team@biodatageeks.org',
       url='https://pyseqtender.biodatageeks.org',
