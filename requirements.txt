@@ -1,0 +1,6 @@
+pyspark==2.4.3
+findspark
+setuptools
+wheel
+twine
+tox

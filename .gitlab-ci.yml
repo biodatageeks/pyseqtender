@@ -1,0 +1,152 @@
+stages:
+  - version
+  - tox
+  - build
+  - publish
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  VERSION_FILE: version.sh
+  GIT_DEPTH: 500
+  KIND_VERSION: 0.9.0
+  KUBERNETES_VERSION: 1.19.1
+  DOCKER_VERSION: 19.03.12
+  HELM_VERSION: 3.3.1
+  JUPYTER_VERSION: 0.9.1
+  SPHINX_VERSION: 3.2.1
+  DOC_PORT_PREFIX: 12
+  HUGO_VERSION: 0.76.3-ext-ubuntu
+  HUGO_ENV: production
+  PIP_SNAPSHOT_REPO: https://zsibio.ii.pw.edu.pl/nexus/repository/bdg-pip/simple
+  PAGE_URL: pyseqtender.biodatageeks.org
+
+.python37Vars: &python37Vars
+  PYTHON_VERSION: "3.7"
+
+.python38Vars: &python38Vars
+  PYTHON_VERSION: "3.8"
+
+.publishSnapshotVar: &publishSnapshotVar
+  PYPI_REPO: "zsibio"
+  DOC_URL_PREFIX: "$PAGE_URL/snapshot"
+  DOC_URL: "https://$PAGE_URL/doc/snapshot/"
+  VERSIONED: "true"
+
+.publishReleaseVar: &publishReleaseVar
+  PYPI_REPO: "pypi"
+  DOC_URL_PREFIX: "$PAGE_URL"
+  DOC_URL: "https://$PAGE_URL/doc/"
+  VERSIONED: "true"
+
+.publishMasterVar: &publishMasterVar
+  PYPI_REPO: "pypi"
+  DOC_URL_PREFIX: "$PAGE_URL"
+  DOC_URL: "https://$PAGE_URL/doc/"
+  VERSIONED: "false"
+
+# --------------------------------- STAGE: version ---------------------------------------------------------------------
+version-branch:
+  stage: version
+  image:
+    name: mdomke/git-semver:v4.0.1
+    entrypoint: [""]
+  script:
+    - cd /builds/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME && git-semver --format x.y.z+m | sed -e 's/$/-SNAPSHOT/g' | xargs -I {} echo "export VERSION={}" > $VERSION_FILE
+    - cat $VERSION_FILE
+  artifacts:
+    paths:
+      - $VERSION_FILE
+  tags: [ docker ]
+  except: [ master, tags ]
+
+version-tag:
+  stage: version
+  image:
+    name: mdomke/git-semver:v4.0.1
+    entrypoint: [""]
+  script:
+    - cd /builds/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME && git-semver --no-hash --no-pre | xargs -I {} echo "export VERSION={}" > $VERSION_FILE
+    - cat $VERSION_FILE
+  artifacts:
+    paths:
+      - $VERSION_FILE
+  tags: [ docker ]
+  except:
+    - branches
+
+tox:
+  variables:
+    <<: *python37Vars
+  stage: tox
+  image: python:$PYTHON_VERSION
+  cache:
+    key: $CI_PROJECT_PATH
+    paths:
+      - "/root/.cache/"
+  before_script:
+    - pip install -U -r requirements.txt
+  script:
+    - tox
+  artifacts:
+    paths:
+      - htmlcov/
+  tags: [ docker ]
+
+.build: &build
+  image: python:$PYTHON_VERSION
+  cache:
+    key: $CI_PROJECT_PATH
+    paths:
+      - "/root/.cache/"
+  before_script:
+    - source $VERSION_FILE
+    - pip install -U -r requirements.txt
+  script:
+    - python setup.py sdist bdist_wheel
+    - twine check dist/*
+  artifacts:
+    paths:
+      - /builds/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/dist/
+  tags: [ docker ]
+
+
+build-python37:
+  stage: build
+  variables:
+    <<: *python37Vars
+  <<: *build
+  except: [ master ]
+
+.publish: &publish
+  image: python:$PYTHON_VERSION
+  cache:
+    key: $CI_PROJECT_PATH
+    paths:
+      - "/root/.cache/"
+  before_script:
+    - source $VERSION_FILE
+    - pip install -U -r requirements.txt
+  script:
+    - twine upload --repository=$PYPI_REPO dist/* --config-file=/root/pypi/.pypirc
+  tags: [ docker ]
+
+
+publishSnapshotpython37:
+  stage: publish
+  variables:
+    <<: *python37Vars
+    <<: *publishSnapshotVar
+  <<: *publish
+  except: [ master, tags ]
+
+publishReleasetpython37:
+  stage: publish
+  variables:
+    <<: *python37Vars
+    <<: *publishReleaseVar
+  <<: *publish
+  only:
+    - tags
+  except:
+    - branches
+  when: manual
