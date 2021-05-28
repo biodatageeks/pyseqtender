@@ -49,7 +49,7 @@ classifiers = [
 long_description = (
     read_content("README.md") )
 
-requires = ['setuptools', 'typeguard==2.5.0', 'pyspark==2.4.3', 'findspark']
+requires = ['setuptools', 'typeguard==2.5.0', 'pyspark==3.0.1', 'findspark']
 
 extras_require = {
     'reST': ['Sphinx'],
@@ -58,7 +58,7 @@ if os.environ.get('READTHEDOCS', None):
     extras_require['reST'].append('recommonmark')
 
 setup(name='pyseqtender',
-      version=os.getenv('VERSION', '0.1.0'),
+      version=os.getenv('VERSION', '0.2.0'),
       description='Distributed NGS pipelines made easy',
       long_description=long_description,
       long_description_content_type='text/markdown',
