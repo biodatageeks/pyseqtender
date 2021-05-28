@@ -49,7 +49,7 @@ classifiers = [
 long_description = (
     read_content("README.md") )
 
-requires = ['setuptools', 'typeguard==2.5.0', 'pyspark==2.4.3', 'findspark']
+requires = ['setuptools', 'typeguard==2.5.0', 'pyspark==3.0.1', 'findspark']
 
 extras_require = {
     'reST': ['Sphinx'],
